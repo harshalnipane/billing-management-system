@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Villa & Resort Billing Management System | Indian GST</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%200%22%20100%22%20100%22><text y=%22.9em%22 font-size=%2290%22>🏖️</text></svg>">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="header-bar">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <div class="brand-icon">🏖️</div>
+        <div class="brand-text">
+          <h1 id="headerResortName">Serene Palms Villa & Resort</h1>
+          <p>
+            <span>Candolim Beach, North Goa</span>
+            <span class="gst-badge" id="headerGstin">GSTIN: 30AABCR1234F1Z5</span>
+            <span style="color: var(--primary); font-weight: 600;">SAC: 996311</span>
+          </p>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" id="tabNewBillBtn" onclick="switchTab('newBill')">
+          <span>📝</span> New Bill & Calculator
+        </button>
+        <button class="tab-btn" id="tabInvoicesBtn" onclick="switchTab('invoices')">
+          <span>📑</span> Invoices History (<span id="invoiceCountBadge">0</span>)
+        </button>
+        <button class="tab-btn" id="tabDashboardBtn" onclick="switchTab('dashboard')">
+          <span>📊</span> GST Analytics
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-container">
+
+    <!-- VIEW 1: NEW BILLING & GST CALCULATOR -->
+    <div id="viewNewBill">
+      <form id="billingForm" onsubmit="event.preventDefault(); submitInvoice();">
+        <div class="billing-grid">
+          
+          <!-- Left Column: Input Forms -->
+          <div class="form-sections">
+
+            <!-- Card 1: Guest Profile & GST KYC -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>👤</span> Guest Information & GST Compliance
+                </div>
+                <span class="gst-slab-pill">B2C / B2B Supported</span>
+              </div>
+              <div class="card-body">
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Guest Full Name <span class="required">*</span></label>
+                    <input type="text" id="guestFullName" class="form-control" placeholder="e.g. Vikramaditya Singhania" required oninput="calculatePreview()">
+                  </div>
+                  <div class="form-group">
+                    <label>Mobile Number <span class="required">*</span></label>
+                    <input type="tel" id="guestPhone" class="form-control" placeholder="e.g. 9820145678" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="guestEmail" class="form-control" placeholder="guest@example.com">
+                  </div>
+                </div>
+
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Guest State & POS <span class="required">*</span></label>
+                    <select id="guestStateSelect" class="form-control" onchange="onGuestStateChange(); calculatePreview();" required>
+                      <!-- Populated dynamically via API -->
+                    </select>
+                    <div class="form-hint" id="stateCodeHint">State Code: 30 (Goa)</div>
+                  </div>
+                  <div class="form-group">
+                    <label>Guest GSTIN (For B2B ITC)</label>
+                    <input type="text" id="guestGstin" class="form-control" placeholder="e.g. 27AAACS1420M1ZK" maxlength="15" oninput="onGuestGstinInput(); calculatePreview();" style="text-transform: uppercase;">
+                    <div class="form-hint">Enables Input Tax Credit (ITC) for business stays</div>
+                  </div>
+                  <div class="form-group">
+                    <label>Company / Firm Name (B2B)</label>
+                    <input type="text" id="companyName" class="form-control" placeholder="e.g. Singhania Holdings Pvt Ltd">
+                  </div>
+                </div>
+
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>ID Proof Document</label>
+                    <select id="guestIdType" class="form-control">
+                      <option value="AADHAAR">Aadhaar Card</option>
+                      <option value="PASSPORT" selected>Passport</option>
+                      <option value="DRIVING_LICENSE">Driving License</option>
+                      <option value="VOTER_ID">Voter ID</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>ID Document Number</label>
+                    <input type="text" id="guestIdNumber" class="form-control" placeholder="e.g. Z5891402">
+                  </div>
+                  <div class="form-group">
+                    <label>Guest City & Address</label>
+                    <input type="text" id="guestAddress" class="form-control" placeholder="e.g. 42 Marine Drive, Mumbai">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Villa & Room Stay Details -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>🏡</span> Villa / Room Stay Details
+                </div>
+                <div id="roomGstRateBadge" class="gst-slab-pill">GST Slab: 18% (> ₹7,500/night)</div>
+              </div>
+              <div class="card-body">
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Select Villa / Suite Category</label>
+                    <select id="villaPresetSelect" class="form-control" onchange="onVillaPresetChange(); calculatePreview();">
+                      <!-- Populated via API -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Villa / Cottage / Room Number <span class="required">*</span></label>
+                    <input type="text" id="villaNumber" class="form-control" placeholder="e.g. Villa 101 - Ocean Breeze" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Meal Plan Package</label>
+                    <select id="mealPlan" class="form-control">
+                      <option value="CP" selected>CP - Continental Plan (With Breakfast)</option>
+                      <option value="MAP">MAP - Modified American (Breakfast + Dinner)</option>
+                      <option value="AP">AP - American Plan (All 3 Meals Included)</option>
+                      <option value="EP">EP - European Plan (Room Only)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-4">
+                  <div class="form-group">
+                    <label>Check-In Date</label>
+                    <input type="date" id="checkInDate" class="form-control" onchange="autoCalcDates(); calculatePreview();" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Check-Out Date</label>
+                    <input type="date" id="checkOutDate" class="form-control" onchange="autoCalcDates(); calculatePreview();" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Total Nights <span class="required">*</span></label>
+                    <input type="number" id="stayNights" class="form-control" min="1" value="3" oninput="calculatePreview();" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Base Tariff / Night (₹) <span class="required">*</span></label>
+                    <input type="number" id="baseTariffPerNight" class="form-control" step="100" min="500" value="18500" oninput="updateRoomGstSlab(); calculatePreview();" required>
+                    <div class="form-hint" id="tariffRuleNotice">Tariff > ₹7,500 attracts 18% GST; ≤ ₹7,500 attracts 12% GST</div>
+                  </div>
+                </div>
+
+                <div class="form-grid-4">
+                  <div class="form-group">
+                    <label>Adults</label>
+                    <input type="number" id="adultsCount" class="form-control" min="1" value="2">
+                  </div>
+                  <div class="form-group">
+                    <label>Children (Under 12)</label>
+                    <input type="number" id="childrenCount" class="form-control" min="0" value="1">
+                  </div>
+                  <div class="form-group">
+                    <label>Extra Bed Count</label>
+                    <input type="number" id="extraBedCount" class="form-control" min="0" value="1" oninput="calculatePreview();">
+                  </div>
+                  <div class="form-group">
+                    <label>Extra Bed Rate / Night (₹)</label>
+                    <input type="number" id="extraBedRate" class="form-control" step="100" min="0" value="3000" oninput="calculatePreview();">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Additional Resort Services (F&B, Spa, Activities) -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>🍽️</span> Resort Services & Amenities (F&B, Spa, Activities)
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="showQuickAddModal()">
+                  <span>➕</span> Add Service Item
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="items-table-wrapper">
+                  <table class="custom-table" id="itemsTable">
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        <th>SAC Code</th>
+                        <th>Item Description</th>
+                        <th style="text-align: center;">Qty</th>
+                        <th style="text-align: right;">Unit Rate (₹)</th>
+                        <th style="text-align: center;">GST %</th>
+                        <th style="text-align: right;">Taxable (₹)</th>
+                        <th style="text-align: right;">GST (₹)</th>
+                        <th style="text-align: right;">Total (₹)</th>
+                        <th style="text-align: center;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="itemsTableBody">
+                      <!-- Populated via Javascript -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Quick Presets Bar -->
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="addPresetItem('FOOD_AND_BEVERAGE', 'In-Villa Candlelight Barbecue Dinner', '996331', 1, 6500, 18)">
+                    🍽️ Candlelight Dinner (₹6,500)
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="addPresetItem('SPA_AND_WELLNESS', 'Couple Ayurvedic Full Body Massage (90m)', '999721', 1, 8500, 18)">
+                    💆 Spa Ayurvedic Massage (₹8,500)
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="addPresetItem('AIRPORT_TRANSFER', 'Luxury Airport Transfer (Mercedes V-Class)', '996412', 2, 3500, 5)">
+                    🚗 Airport Pick & Drop (₹3,500)
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="addPresetItem('RESORT_ACTIVITIES', 'Private Yacht Sunset Cruise with Snacks', '999699', 1, 15000, 18)">
+                    ⛵ Sunset Yacht Cruise (₹15,000)
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="addPresetItem('MINI_BAR', 'Mini Bar Premium Refreshments & Wine', '996332', 1, 2800, 18)">
+                    🍷 Mini Bar (₹2,800)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Discounts, Settlement & Supply Configuration -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>💳</span> Settlement, Advance & Supply Configuration
+                </div>
+                <div id="supplyTypeIndicator" class="tax-status-pill status-inter">
+                  INTER-STATE (IGST)
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Discount Mode</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                      <input type="number" id="discountFlat" class="form-control" placeholder="Flat ₹ Discount" min="0" value="5000" oninput="calculatePreview();">
+                      <input type="number" id="discountPercent" class="form-control" placeholder="% Discount" min="0" max="100" value="0" oninput="calculatePreview();">
+                    </div>
+                    <div class="form-hint">Discounts deducted proportionally before GST (Sec 15(3))</div>
+                  </div>
+                  <div class="form-group">
+                    <label>Advance Payment Paid (₹)</label>
+                    <input type="number" id="advancePaid" class="form-control" min="0" value="30000" oninput="calculatePreview();">
+                    <div class="form-hint">Deposit collected at booking/check-in</div>
+                  </div>
+                  <div class="form-group">
+                    <label>Supply Tax Rule Override</label>
+                    <select id="supplyOverrideSelect" class="form-control" onchange="calculatePreview();">
+                      <option value="AUTO" selected>Auto-Detect based on Guest State vs Resort</option>
+                      <option value="INTRA">Force Intra-State (CGST 50% + SGST 50%)</option>
+                      <option value="INTER">Force Inter-State (IGST 100%)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Settlement Payment Mode</label>
+                    <select id="paymentMode" class="form-control">
+                      <option value="UPI" selected>UPI (GPay / PhonePe / Paytm)</option>
+                      <option value="CREDIT_CARD">Credit Card (Visa / Mastercard / Amex)</option>
+                      <option value="NET_BANKING">Net Banking / NEFT / RTGS</option>
+                      <option value="CASH">Cash Payment</option>
+                      <option value="COMPANY_ACCOUNT">Direct Company Bill to Corporate</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Payment Reference / Transaction ID</label>
+                    <input type="text" id="transactionRef" class="form-control" placeholder="e.g. HDFC_TXN_987214 / UPI_REF">
+                  </div>
+                  <div class="form-group">
+                    <label>Special Instructions / Invoice Notes</label>
+                    <input type="text" id="invoiceNotes" class="form-control" placeholder="e.g. Late checkout approved; Corporate billing">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Live GST Summary Card -->
+          <div class="summary-wrapper">
+            <div class="summary-card">
+              <div class="summary-title">
+                <span>GST Tax Breakdown</span>
+                <span id="supplyBadgeSummary" class="tax-status-pill status-inter">IGST</span>
+              </div>
+
+              <div class="summary-row">
+                <span>Gross Subtotal:</span>
+                <span id="summaryGross" class="bold">₹ 0.00</span>
+              </div>
+              <div class="summary-row" style="color: var(--danger-text);">
+                <span>Discount Deduction:</span>
+                <span id="summaryDiscount" class="bold">- ₹ 0.00</span>
+              </div>
+              <div class="summary-row">
+                <span>Net Taxable Value:</span>
+                <span id="summaryTaxable" class="bold">₹ 0.00</span>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid var(--border-light); margin: 0.5rem 0;">
+
+              <!-- CGST / SGST or IGST Rows -->
+              <div id="intraStateTaxRows" style="display: none;">
+                <div class="summary-row">
+                  <span>Central GST (CGST):</span>
+                  <span id="summaryCgst" class="bold" style="color: var(--accent-teal);">₹ 0.00</span>
+                </div>
+                <div class="summary-row">
+                  <span>State GST (SGST):</span>
+                  <span id="summarySgst" class="bold" style="color: var(--accent-teal);">₹ 0.00</span>
+                </div>
+              </div>
+              <div id="interStateTaxRows">
+                <div class="summary-row">
+                  <span>Integrated GST (IGST):</span>
+                  <span id="summaryIgst" class="bold" style="color: #1565C0;">₹ 0.00</span>
+                </div>
+              </div>
+
+              <div class="summary-row">
+                <span>Total GST Amount:</span>
+                <span id="summaryTotalTax" class="bold">₹ 0.00</span>
+              </div>
+              <div class="summary-row" style="font-size: 0.78rem;">
+                <span>Round Off (Rule 54):</span>
+                <span id="summaryRoundOff">₹ 0.00</span>
+              </div>
+
+              <!-- Grand Total -->
+              <div class="summary-row total-row">
+                <span>Grand Total:</span>
+                <span id="summaryGrandTotal">₹ 0.00</span>
+              </div>
+
+              <div class="summary-row">
+                <span>Advance Paid:</span>
+                <span id="summaryAdvance" style="color: var(--success-text);">- ₹ 0.00</span>
+              </div>
+
+              <!-- Balance Due -->
+              <div class="summary-row due-row">
+                <span>Balance Due:</span>
+                <span id="summaryBalanceDue">₹ 0.00</span>
+              </div>
+
+              <!-- Amount in words -->
+              <div class="amount-words-box">
+                <div style="font-weight: 600; margin-bottom: 2px; color: var(--text-main);">Amount in Words:</div>
+                <span id="summaryAmountWords">Rupees Zero Only</span>
+              </div>
+
+              <!-- Tax Slabs Table -->
+              <div style="margin-top: 0.85rem;">
+                <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">
+                  Tax Slab Summary (SAC-wise)
+                </div>
+                <table class="tax-slab-table">
+                  <thead>
+                    <tr>
+                      <th>Slab</th>
+                      <th>Taxable</th>
+                      <th>CGST</th>
+                      <th>SGST</th>
+                      <th>IGST</th>
+                      <th>Tax</th>
+                    </tr>
+                  </thead>
+                  <tbody id="slabTableBody">
+                    <!-- Populated via Javascript -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-top: 1.25rem;">
+                <button type="submit" class="btn btn-primary" id="btnGenerateInvoice" style="width: 100%; font-size: 0.95rem; padding: 0.8rem;">
+                  <span>🧾</span> Generate & Save Tax Invoice
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="previewCurrentBillModal()" style="width: 100%;">
+                  <span>👁️</span> Preview Tax Invoice Format
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="resetFormToSample()" style="width: 100%; color: var(--text-muted);">
+                  🔄 Reset Form
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <!-- VIEW 2: INVOICES HISTORY -->
+    <div id="viewInvoices" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📑</span> Generated GST Tax Invoices
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <input type="text" id="invoiceSearchInput" class="form-control" placeholder="Search by Invoice No, Guest, Villa..." oninput="filterInvoices(this.value)" style="width: 280px; padding: 0.4rem 0.75rem;">
+            <button class="btn btn-primary btn-sm" onclick="switchTab('newBill')">
+              <span>➕</span> New Invoice
+            </button>
+          </div>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="items-table-wrapper" style="border: none; margin: 0;">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Date</th>
+                  <th>Guest Name</th>
+                  <th>Villa / Stay</th>
+                  <th>GST Type</th>
+                  <th style="text-align: right;">Taxable (₹)</th>
+                  <th style="text-align: right;">Total GST (₹)</th>
+                  <th style="text-align: right;">Grand Total (₹)</th>
+                  <th style="text-align: right;">Balance Due (₹)</th>
+                  <th style="text-align: center;">Status</th>
+                  <th style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="invoicesListTableBody">
+                <!-- Populated via Javascript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: RESORT ANALYTICS & GST DASHBOARD -->
+    <div id="viewDashboard" style="display: none;">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Total Invoices</div>
+          <div class="metric-value" id="dashTotalInvoices">0</div>
+          <div class="metric-sub">Issued under GST Act</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total Gross Revenue</div>
+          <div class="metric-value" id="dashTotalRevenue" style="color: var(--primary);">₹ 0.00</div>
+          <div class="metric-sub">Including Accommodation, F&B & Spa</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total Taxable Value</div>
+          <div class="metric-value" id="dashTaxableRevenue">₹ 0.00</div>
+          <div class="metric-sub">Net assessable value</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total GST Collected</div>
+          <div class="metric-value" id="dashTotalTax" style="color: var(--accent-teal);">₹ 0.00</div>
+          <div class="metric-sub">CGST + SGST + IGST combined</div>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">CGST Collected (Goa)</div>
+          <div class="metric-value" id="dashCgst">₹ 0.00</div>
+          <div class="metric-sub">Intra-State Central GST share</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">SGST Collected (Goa)</div>
+          <div class="metric-value" id="dashSgst">₹ 0.00</div>
+          <div class="metric-sub">Intra-State State GST share</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">IGST Collected</div>
+          <div class="metric-value" id="dashIgst" style="color: #1565C0;">₹ 0.00</div>
+          <div class="metric-sub">Inter-State Integrated GST</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Pending Dues at Checkout</div>
+          <div class="metric-value" id="dashPending" style="color: #B45309;">₹ 0.00</div>
+          <div class="metric-sub">Awaiting settlement</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- QUICK ADD CUSTOM ITEM MODAL -->
+  <div id="quickAddModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="card-title"><span>➕</span> Add Resort Service / Charge</div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeQuickAddModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Service Category</label>
+          <select id="modalCategory" class="form-control" onchange="onModalCategoryChange()">
+            <option value="FOOD_AND_BEVERAGE">Food & Beverage (SAC 996331)</option>
+            <option value="SPA_AND_WELLNESS">Spa & Ayurvedic Wellness (SAC 999721)</option>
+            <option value="AIRPORT_TRANSFER">Airport / Chauffeur Transport (SAC 996412)</option>
+            <option value="RESORT_ACTIVITIES">Resort Activities & Sports (SAC 999699)</option>
+            <option value="LAUNDRY_SERVICE">Laundry & Dry Cleaning (SAC 999799)</option>
+            <option value="MINI_BAR">Mini Bar (SAC 996332)</option>
+            <option value="BANQUET_EVENT">Banquet Lawn / Event (SAC 997212)</option>
+            <option value="MISCELLANEOUS">Miscellaneous (SAC 999900)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Item Description <span class="required">*</span></label>
+          <input type="text" id="modalDesc" class="form-control" placeholder="e.g. Scuba Diving Experience with Trainer">
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>SAC / HSN Code</label>
+            <input type="text" id="modalSac" class="form-control" value="996331">
+          </div>
+          <div class="form-group">
+            <label>GST Slab Rate (%)</label>
+            <select id="modalGstRate" class="form-control">
+              <option value="5">5% (Dining / Transport)</option>
+              <option value="12">12% (Standard Services)</option>
+              <option value="18" selected>18% (Luxury / Spa / Dining)</option>
+              <option value="28">28% (Luxury / Tobacco/Cess items)</option>
+              <option value="0">0% (Nil Rated / Exempt)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Quantity / Units</label>
+            <input type="number" id="modalQty" class="form-control" value="1" min="1">
+          </div>
+          <div class="form-group">
+            <label>Unit Rate (₹ excl. tax) <span class="required">*</span></label>
+            <input type="number" id="modalRate" class="form-control" value="2500" step="50" min="0">
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeQuickAddModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="confirmAddModalItem()">Add to Bill</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAX INVOICE PRINT / PREVIEW MODAL -->
+  <div id="invoiceModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header no-print">
+        <div class="card-title">
+          <span>🧾</span> Official Indian GST Tax Invoice
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+            <span>🖨️</span> Print / Save PDF
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeInvoiceModal()">✕ Close</button>
+        </div>
+      </div>
+      <div class="modal-body" id="invoiceModalContent">
+        <!-- Rendered Tax Invoice will be dynamically injected here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
