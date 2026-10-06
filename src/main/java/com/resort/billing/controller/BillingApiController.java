@@ -116,6 +116,7 @@ public class BillingApiController implements HttpHandler {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private CalculateBillRequest parseCalculateRequest(String json) {
         Map<String, Object> map = JsonUtils.parseMap(json);
         CalculateBillRequest req = new CalculateBillRequest();
@@ -139,6 +140,7 @@ public class BillingApiController implements HttpHandler {
         return req;
     }
 
+    @SuppressWarnings("unchecked")
     private CreateInvoiceRequest parseCreateInvoiceRequest(String json) {
         Map<String, Object> map = JsonUtils.parseMap(json);
         CreateInvoiceRequest req = new CreateInvoiceRequest();
@@ -197,6 +199,7 @@ public class BillingApiController implements HttpHandler {
         return b;
     }
 
+    @SuppressWarnings("unchecked")
     private List<BillItem> parseBillItems(List<Object> list) {
         List<BillItem> items = new ArrayList<>();
         for (Object o : list) {
