@@ -21,7 +21,12 @@ public class BillingApplication {
 
     public static void main(String[] args) {
         int port = DEFAULT_PORT;
-        if (args.length > 0) {
+        String envPort = System.getenv("PORT");
+        if (envPort != null && !envPort.trim().isEmpty()) {
+            try {
+                port = Integer.parseInt(envPort.trim());
+            } catch (NumberFormatException ignored) {}
+        } else if (args.length > 0) {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException ignored) {}
@@ -33,7 +38,7 @@ public class BillingApplication {
             InvoiceRepository invoiceRepository = new InvoiceRepository();
             InvoiceService invoiceService = new InvoiceService(invoiceRepository, gstCalculationService);
 
-            // Locate Static Resources directory
+            // Locate Static Resources directory (for local file system dev fallback)
             String staticDir = "src/main/resources/static";
             if (!new File(staticDir).exists()) {
                 if (new File("static").exists()) {
@@ -43,7 +48,7 @@ public class BillingApplication {
                 }
             }
 
-            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
             server.setExecutor(Executors.newFixedThreadPool(16));
 
             // REST API Handlers

@@ -25,30 +25,60 @@ public class StaticFileHandler implements HttpHandler {
 
         // Prevent path traversal
         path = path.replace("..", "");
-
-        Path filePath = Paths.get(staticDir, path);
-        if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
-            // Fallback to index.html for single-page routing
-            filePath = Paths.get(staticDir, "index.html");
+        if (!path.startsWith("/")) {
+            path = "/" + path;
         }
 
-        if (!Files.exists(filePath)) {
-            String notFound = "404 Not Found - Frontend static file not found at " + filePath.toAbsolutePath();
-            exchange.sendResponseHeaders(404, notFound.length());
+        // 1. Try loading from Classpath (when running inside packaged JAR or container)
+        byte[] content = loadFromClasspath("static" + path);
+        if (content == null && !path.contains(".")) {
+            // SPA fallback to index.html
+            content = loadFromClasspath("static/index.html");
+            if (content != null) {
+                path = "/index.html";
+            }
+        }
+
+        // 2. Fallback to filesystem if not found in classpath (local dev environment)
+        if (content == null && staticDir != null) {
+            Path filePath = Paths.get(staticDir, path);
+            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
+                filePath = Paths.get(staticDir, "index.html");
+            }
+            if (Files.exists(filePath)) {
+                content = Files.readAllBytes(filePath);
+            }
+        }
+
+        if (content == null) {
+            String notFound = "404 Not Found - Frontend static file not found: " + path;
+            byte[] notFoundBytes = notFound.getBytes("UTF-8");
+            exchange.sendResponseHeaders(404, notFoundBytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
-                os.write(notFound.getBytes());
+                os.write(notFoundBytes);
             }
             return;
         }
 
-        String mime = getMimeType(filePath.getFileName().toString());
+        String mime = getMimeType(path);
         exchange.getResponseHeaders().set("Content-Type", mime + "; charset=UTF-8");
         exchange.getResponseHeaders().set("Cache-Control", "no-cache");
 
-        byte[] content = Files.readAllBytes(filePath);
         exchange.sendResponseHeaders(200, content.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(content);
+        }
+    }
+
+    private byte[] loadFromClasspath(String resourcePath) {
+        if (!resourcePath.startsWith("/")) {
+            resourcePath = "/" + resourcePath;
+        }
+        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+            if (is == null) return null;
+            return is.readAllBytes();
+        } catch (Exception ignored) {
+            return null;
         }
     }
 

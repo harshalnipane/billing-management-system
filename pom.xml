@@ -14,9 +14,9 @@
     <description>Enterprise Billing Management System with Indian GST Calculation for Luxury Villas and Resorts</description>
 
     <properties>
-        <java.version>25</java.version>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <main.class>com.resort.billing.BillingApplication</main.class>
     </properties>
@@ -39,7 +39,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <release>25</release>
+                    <release>21</release>
                 </configuration>
             </plugin>
 
