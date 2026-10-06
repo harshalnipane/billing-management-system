@@ -3,26 +3,17 @@ package com.resort.billing;
 import com.resort.billing.model.*;
 import com.resort.billing.service.GstCalculationService;
 import com.resort.billing.service.IndianCurrencyHelper;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class GstCalculationTest {
 
-    public static void main(String[] args) {
-        System.out.println("Running GST Calculation Engine Tests...");
+    @Test
+    void testTariffThreshold() {
         GstCalculationService service = new GstCalculationService();
 
-        testTariffThreshold(service);
-        testIntraStateCalculation(service);
-        testInterStateCalculation(service);
-        testDiscountProportion(service);
-        testCurrencyToWords();
-
-        System.out.println(">>> ALL 5 TEST SUITES PASSED SUCCESSFULLY! <<<");
-    }
-
-    private static void testTariffThreshold(GstCalculationService service) {
         double rateLow = service.getAccommodationGstRate(5000.0);
         assertDouble(rateLow, 12.0, "Tariff <= 7500 must be 12% GST");
 
@@ -31,10 +22,11 @@ public class GstCalculationTest {
 
         double rateHigh = service.getAccommodationGstRate(12000.0);
         assertDouble(rateHigh, 18.0, "Tariff > 7500 must be 18% GST");
-        System.out.println("[PASS] Room Tariff Threshold Test");
     }
 
-    private static void testIntraStateCalculation(GstCalculationService service) {
+    @Test
+    void testIntraStateCalculation() {
+        GstCalculationService service = new GstCalculationService();
         List<BillItem> items = new ArrayList<>();
         items.add(new BillItem("1", ItemCategory.ACCOMMODATION, "Room", "996311", 1, 6000.0, 12.0));
 
@@ -44,10 +36,11 @@ public class GstCalculationTest {
         assertDouble(res.sgstAmount, 360.0, "SGST must be 6% of 6000 = 360");
         assertDouble(res.igstAmount, 0.0, "IGST must be 0 for intra-state");
         assertDouble(res.grandTotal, 6720.0, "Grand total must be 6720");
-        System.out.println("[PASS] Intra-State CGST + SGST Test");
     }
 
-    private static void testInterStateCalculation(GstCalculationService service) {
+    @Test
+    void testInterStateCalculation() {
+        GstCalculationService service = new GstCalculationService();
         List<BillItem> items = new ArrayList<>();
         items.add(new BillItem("1", ItemCategory.ACCOMMODATION, "Villa", "996311", 2, 10000.0, 18.0));
 
@@ -57,10 +50,11 @@ public class GstCalculationTest {
         assertDouble(res.sgstAmount, 0.0, "SGST must be 0 for inter-state");
         assertDouble(res.igstAmount, 3600.0, "IGST must be 18% of 20000 = 3600");
         assertDouble(res.grandTotal, 23600.0, "Grand total must be 23600");
-        System.out.println("[PASS] Inter-State IGST Test");
     }
 
-    private static void testDiscountProportion(GstCalculationService service) {
+    @Test
+    void testDiscountProportion() {
+        GstCalculationService service = new GstCalculationService();
         List<BillItem> items = new ArrayList<>();
         items.add(new BillItem("1", ItemCategory.ACCOMMODATION, "Villa", "996311", 1, 10000.0, 18.0));
 
@@ -70,15 +64,14 @@ public class GstCalculationTest {
         assertDouble(res.taxableAmount, 9000.0, "Taxable amount after discount");
         assertDouble(res.igstAmount, 1620.0, "IGST on discounted taxable");
         assertDouble(res.grandTotal, 10620.0, "Grand total after discount & tax");
-        System.out.println("[PASS] Discount Deduction Test");
     }
 
-    private static void testCurrencyToWords() {
+    @Test
+    void testCurrencyToWords() {
         String words = IndianCurrencyHelper.convertToWords(23600.0);
         if (!words.contains("Twenty Three Thousand Six Hundred")) {
             throw new AssertionError("Unexpected words output: " + words);
         }
-        System.out.println("[PASS] Indian Number to Words Test: " + words);
     }
 
     private static void assertDouble(double actual, double expected, String msg) {
